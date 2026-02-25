@@ -9,6 +9,7 @@ import EmployeeDashboard from './pages/EmployeeDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import History from './pages/History';
 import Profile from './pages/Profile';
+import Employees from './pages/Employees';
 
 function ProtectedRoute({ children, role }: { children: React.ReactNode; role?: 'employee' | 'admin' }) {
   const { user } = useAuth();
@@ -62,7 +63,7 @@ function AppRoutes() {
           path="/employees" 
           element={
             <ProtectedRoute role="admin">
-              <div className="p-4 text-center text-slate-500">Em desenvolvimento</div>
+              <Employees />
             </ProtectedRoute>
           } 
         />

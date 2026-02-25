@@ -10,10 +10,12 @@ export interface User {
   company: string;
   cpf?: string;
   phone?: string;
+  admissionDate?: string;
 }
 
 interface AuthContextType {
   user: User | null;
+  users: User[];
   login: (email: string, role: UserRole) => void;
   logout: () => void;
   register: (data: Partial<User>) => void;
@@ -27,6 +29,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return saved ? JSON.parse(saved) : null;
   });
 
+  const [users, setUsers] = useState<User[]>(() => {
+    const saved = localStorage.getItem('ponto_users');
+    return saved ? JSON.parse(saved) : [];
+  });
+
   useEffect(() => {
     if (user) {
       localStorage.setItem('ponto_user', JSON.stringify(user));
@@ -35,19 +42,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user]);
 
+  useEffect(() => {
+    localStorage.setItem('ponto_users', JSON.stringify(users));
+  }, [users]);
+
   const login = (email: string, role: UserRole) => {
-    // Mock login
-    setUser({
-      id: Math.random().toString(36).substr(2, 9),
-      name: email.split('@')[0],
-      email,
-      role,
-      company: 'Empresa Demo Ltda',
-    });
+    const existingUser = users.find(u => u.email === email);
+    
+    if (existingUser) {
+      setUser(existingUser);
+    } else {
+      // Auto-register for demo purposes if not found
+      const newUser: User = {
+        id: Math.random().toString(36).substr(2, 9),
+        name: email.split('@')[0],
+        email,
+        role,
+        company: 'Empresa Demo Ltda',
+        admissionDate: new Date().toISOString(),
+      };
+      setUsers(prev => [...prev, newUser]);
+      setUser(newUser);
+    }
   };
 
   const register = (data: Partial<User>) => {
-    setUser({
+    const newUser: User = {
       id: Math.random().toString(36).substr(2, 9),
       name: data.name || 'Novo Usuário',
       email: data.email || '',
@@ -55,7 +75,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       company: data.company || 'Empresa Demo Ltda',
       cpf: data.cpf,
       phone: data.phone,
-    });
+      admissionDate: new Date().toISOString(),
+    };
+    
+    setUsers(prev => [...prev, newUser]);
+    setUser(newUser);
   };
 
   const logout = () => {
@@ -63,7 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, register }}>
+    <AuthContext.Provider value={{ user, users, login, logout, register }}>
       {children}
     </AuthContext.Provider>
   );

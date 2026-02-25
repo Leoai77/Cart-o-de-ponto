@@ -31,7 +31,8 @@ export default function EmployeeDashboard() {
     return () => clearInterval(timer);
   }, []);
 
-  useEffect(() => {
+  const requestLocation = () => {
+    setLocationError(null);
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -42,12 +43,30 @@ export default function EmployeeDashboard() {
           setLocationError(null);
         },
         (error) => {
-          setLocationError('Não foi possível obter a localização. Verifique as permissões.');
+          console.error('Geolocation error:', error);
+          let errorMessage = 'Não foi possível obter a localização.';
+          if (error.code === error.PERMISSION_DENIED) {
+            errorMessage = 'Permissão de localização negada. Por favor, habilite nas configurações do navegador.';
+          } else if (error.code === error.POSITION_UNAVAILABLE) {
+            errorMessage = 'Localização indisponível. Verifique seu GPS.';
+          } else if (error.code === error.TIMEOUT) {
+            errorMessage = 'Tempo limite esgotado ao buscar localização.';
+          }
+          setLocationError(errorMessage);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 20000,
+          maximumAge: 0
         }
       );
     } else {
       setLocationError('Geolocalização não suportada pelo navegador.');
     }
+  };
+
+  useEffect(() => {
+    requestLocation();
   }, []);
 
   const handleRegister = async (type: RecordType) => {
@@ -118,8 +137,17 @@ export default function EmployeeDashboard() {
         </div>
 
         {locationError && (
-          <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">
-            {locationError}
+          <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100 flex flex-col gap-2">
+            <p>{locationError}</p>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={requestLocation}
+              className="self-start border-red-200 text-red-700 hover:bg-red-100 hover:text-red-800"
+            >
+              <MapPin className="w-4 h-4 mr-2" />
+              Tentar Novamente
+            </Button>
           </div>
         )}
 

@@ -6,8 +6,11 @@ import { Button } from '../components/ui/button';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
+import { useNavigate } from 'react-router-dom';
+
 export default function AdminDashboard() {
   const { records } = useRecords();
+  const navigate = useNavigate();
 
   const todayRecords = records.filter(
     (r) => new Date(r.timestamp).toDateString() === new Date().toDateString()
@@ -108,7 +111,11 @@ export default function AdminDashboard() {
           <FileText className="w-6 h-6 text-indigo-600" />
           <span className="text-sm font-medium">Relatório Mensal</span>
         </Button>
-        <Button variant="outline" className="h-20 flex flex-col gap-2 border-slate-200 hover:bg-slate-50">
+        <Button 
+          variant="outline" 
+          className="h-20 flex flex-col gap-2 border-slate-200 hover:bg-slate-50"
+          onClick={() => navigate('/employees')}
+        >
           <Users className="w-6 h-6 text-indigo-600" />
           <span className="text-sm font-medium">Gerir Equipe</span>
         </Button>
