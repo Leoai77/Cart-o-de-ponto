@@ -1,0 +1,8 @@
+{
+  "name": "PontoSmart",
+  "description": "Aplicativo de controle de ponto digital com geolocalização e validação em tempo real.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ]
+}
