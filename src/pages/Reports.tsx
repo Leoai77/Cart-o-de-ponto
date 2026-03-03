@@ -122,6 +122,58 @@ export default function Reports() {
     return `${h}h ${m}m`;
   };
 
+  const handleExport = () => {
+    let csvContent = "data:text/csv;charset=utf-8,";
+    
+    // Header
+    if (selectedUser === 'all') {
+      csvContent += "Funcionário,Data,Tipo,Hora,Localização\n";
+    } else {
+      csvContent += "Data,Tipo,Hora,Localização\n";
+    }
+
+    // Data
+    const recordsToExport = selectedUser === 'all' 
+      ? monthRecords 
+      : monthRecords.filter(r => r.userId === selectedUser);
+
+    // Sort by date
+    recordsToExport.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+    recordsToExport.forEach(r => {
+      const date = format(new Date(r.timestamp), 'dd/MM/yyyy');
+      const time = format(new Date(r.timestamp), 'HH:mm:ss');
+      const typeMap: Record<string, string> = {
+        'entrada': 'Entrada',
+        'inicio_intervalo': 'Início Intervalo',
+        'fim_intervalo': 'Fim Intervalo',
+        'saida': 'Saída'
+      };
+      const type = typeMap[r.type] || r.type;
+      const location = r.location ? `"${r.location.lat}, ${r.location.lng}"` : 'N/A';
+
+      if (selectedUser === 'all') {
+        const user = users.find(u => u.id === r.userId);
+        const userName = user ? user.name : 'Desconhecido';
+        csvContent += `"${userName}",${date},${type},${time},${location}\n`;
+      } else {
+        csvContent += `${date},${type},${time},${location}\n`;
+      }
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    const fileName = selectedUser === 'all' 
+      ? `relatorio_geral_${format(currentDate, 'MM-yyyy')}.csv`
+      : `relatorio_${users.find(u => u.id === selectedUser)?.name.replace(/\s+/g, '_')}_${format(currentDate, 'MM-yyyy')}.csv`;
+    
+    link.setAttribute("download", fileName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-4">
@@ -157,8 +209,8 @@ export default function Reports() {
                   <option key={u.id} value={u.id}>{u.name}</option>
                 ))}
               </select>
-              <Button variant="outline" size="sm" className="gap-2">
-                <Download className="w-4 h-4" /> CSV
+              <Button variant="outline" size="sm" className="gap-2" onClick={handleExport}>
+                <Download className="w-4 h-4" /> Exportar Detalhado (CSV)
               </Button>
             </div>
           </div>
