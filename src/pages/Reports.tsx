@@ -3,35 +3,29 @@ import { useRecords, TimeRecord } from '../context/RecordsContext';
 import { useAuth, User } from '../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { format, startOfMonth, endOfMonth, differenceInMinutes } from 'date-fns';
+import { format, startOfMonth, endOfMonth, differenceInMinutes, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Download, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Download, Calendar as CalendarIcon } from 'lucide-react';
 
 export default function Reports() {
   const { records } = useRecords();
   const { users } = useAuth();
-  const [currentDate, setCurrentDate] = useState(new Date());
+  
+  // Initialize with current month
+  const [startDate, setStartDate] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
+  const [endDate, setEndDate] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
   const [selectedUser, setSelectedUser] = useState<string>('all');
 
-  // Helper to change months
-  const nextMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
-  };
-
-  const prevMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
-  };
-
-  // Filter records for the selected month
-  const monthRecords = useMemo(() => {
-    const start = startOfMonth(currentDate);
-    const end = endOfMonth(currentDate);
+  // Filter records for the selected date range
+  const filteredRecords = useMemo(() => {
+    const start = startOfDay(new Date(startDate));
+    const end = endOfDay(new Date(endDate));
     
     return records.filter(r => {
       const date = new Date(r.timestamp);
       return date >= start && date <= end;
     });
-  }, [records, currentDate]);
+  }, [records, startDate, endDate]);
 
   // Calculate stats per user
   const userStats = useMemo(() => {
@@ -52,7 +46,7 @@ export default function Reports() {
     // Group records by user and day
     const recordsByUserAndDay = new Map<string, Map<string, TimeRecord[]>>();
 
-    monthRecords.forEach(r => {
+    filteredRecords.forEach(r => {
       if (!recordsByUserAndDay.has(r.userId)) {
         recordsByUserAndDay.set(r.userId, new Map());
       }
@@ -110,7 +104,7 @@ export default function Reports() {
     });
 
     return Array.from(stats.values());
-  }, [users, monthRecords]);
+  }, [users, filteredRecords]);
 
   const filteredStats = selectedUser === 'all' 
     ? userStats 
@@ -134,8 +128,8 @@ export default function Reports() {
 
     // Data
     const recordsToExport = selectedUser === 'all' 
-      ? monthRecords 
-      : monthRecords.filter(r => r.userId === selectedUser);
+      ? filteredRecords 
+      : filteredRecords.filter(r => r.userId === selectedUser);
 
     // Sort by date
     recordsToExport.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
@@ -164,9 +158,13 @@ export default function Reports() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
+    
+    const startStr = format(new Date(startDate), 'dd-MM-yyyy');
+    const endStr = format(new Date(endDate), 'dd-MM-yyyy');
+    
     const fileName = selectedUser === 'all' 
-      ? `relatorio_geral_${format(currentDate, 'MM-yyyy')}.csv`
-      : `relatorio_${users.find(u => u.id === selectedUser)?.name.replace(/\s+/g, '_')}_${format(currentDate, 'MM-yyyy')}.csv`;
+      ? `relatorio_geral_${startStr}_${endStr}.csv`
+      : `relatorio_${users.find(u => u.id === selectedUser)?.name.replace(/\s+/g, '_')}_${startStr}_${endStr}.csv`;
     
     link.setAttribute("download", fileName);
     document.body.appendChild(link);
@@ -179,18 +177,26 @@ export default function Reports() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Relatórios de Ponto</h1>
-          <p className="text-slate-500 text-sm">Resumo mensal de horas e ocorrências</p>
+          <p className="text-slate-500 text-sm">Resumo de horas e ocorrências por período</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={prevMonth}>
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
-          <div className="font-medium min-w-[140px] text-center">
-            {format(currentDate, 'MMMM yyyy', { locale: ptBR })}
+        <div className="flex items-center gap-2 bg-white p-2 rounded-lg border shadow-sm">
+          <div className="flex items-center gap-2">
+            <CalendarIcon className="w-4 h-4 text-slate-500" />
+            <span className="text-sm font-medium text-slate-700">Período:</span>
           </div>
-          <Button variant="outline" size="icon" onClick={nextMonth}>
-            <ChevronRight className="w-4 h-4" />
-          </Button>
+          <input 
+            type="date" 
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="text-sm border rounded px-2 py-1 text-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          />
+          <span className="text-slate-400 text-sm">até</span>
+          <input 
+            type="date" 
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="text-sm border rounded px-2 py-1 text-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          />
         </div>
       </div>
 
