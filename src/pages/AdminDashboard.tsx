@@ -107,7 +107,11 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <Button variant="outline" className="h-20 flex flex-col gap-2 border-slate-200 hover:bg-slate-50">
+        <Button 
+          variant="outline" 
+          className="h-20 flex flex-col gap-2 border-slate-200 hover:bg-slate-50"
+          onClick={() => navigate('/reports')}
+        >
           <FileText className="w-6 h-6 text-indigo-600" />
           <span className="text-sm font-medium">Relatório Mensal</span>
         </Button>
