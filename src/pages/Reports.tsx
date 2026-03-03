@@ -117,59 +117,69 @@ export default function Reports() {
   };
 
   const handleExport = () => {
-    let csvContent = "data:text/csv;charset=utf-8,";
-    
-    // Header
-    if (selectedUser === 'all') {
-      csvContent += "Funcionário,Data,Tipo,Hora,Localização\n";
-    } else {
-      csvContent += "Data,Tipo,Hora,Localização\n";
-    }
-
-    // Data
-    const recordsToExport = selectedUser === 'all' 
-      ? filteredRecords 
-      : filteredRecords.filter(r => r.userId === selectedUser);
-
-    // Sort by date
-    recordsToExport.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-
-    recordsToExport.forEach(r => {
-      const date = format(new Date(r.timestamp), 'dd/MM/yyyy');
-      const time = format(new Date(r.timestamp), 'HH:mm:ss');
-      const typeMap: Record<string, string> = {
-        'entrada': 'Entrada',
-        'inicio_intervalo': 'Início Intervalo',
-        'fim_intervalo': 'Fim Intervalo',
-        'saida': 'Saída'
-      };
-      const type = typeMap[r.type] || r.type;
-      const location = r.location ? `"${r.location.lat}, ${r.location.lng}"` : 'N/A';
-
+    try {
+      let csvContent = "";
+      
+      // Header
       if (selectedUser === 'all') {
-        const user = users.find(u => u.id === r.userId);
-        const userName = user ? user.name : 'Desconhecido';
-        csvContent += `"${userName}",${date},${type},${time},${location}\n`;
+        csvContent += "Funcionário,Data,Tipo,Hora,Localização\n";
       } else {
-        csvContent += `${date},${type},${time},${location}\n`;
+        csvContent += "Data,Tipo,Hora,Localização\n";
       }
-    });
 
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    
-    const startStr = format(new Date(startDate), 'dd-MM-yyyy');
-    const endStr = format(new Date(endDate), 'dd-MM-yyyy');
-    
-    const fileName = selectedUser === 'all' 
-      ? `relatorio_geral_${startStr}_${endStr}.csv`
-      : `relatorio_${users.find(u => u.id === selectedUser)?.name.replace(/\s+/g, '_')}_${startStr}_${endStr}.csv`;
-    
-    link.setAttribute("download", fileName);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      // Data
+      const recordsToExport = selectedUser === 'all' 
+        ? filteredRecords 
+        : filteredRecords.filter(r => r.userId === selectedUser);
+
+      // Sort by date
+      recordsToExport.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+      recordsToExport.forEach(r => {
+        const date = format(new Date(r.timestamp), 'dd/MM/yyyy');
+        const time = format(new Date(r.timestamp), 'HH:mm:ss');
+        const typeMap: Record<string, string> = {
+          'entrada': 'Entrada',
+          'inicio_intervalo': 'Início Intervalo',
+          'fim_intervalo': 'Fim Intervalo',
+          'saida': 'Saída'
+        };
+        const type = typeMap[r.type] || r.type;
+        const location = r.location ? `"${r.location.lat}, ${r.location.lng}"` : 'N/A';
+
+        if (selectedUser === 'all') {
+          const user = users.find(u => u.id === r.userId);
+          const userName = user ? user.name : 'Desconhecido';
+          csvContent += `"${userName}",${date},${type},${time},${location}\n`;
+        } else {
+          csvContent += `${date},${type},${time},${location}\n`;
+        }
+      });
+
+      // Use Blob for better mobile compatibility
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      
+      const startStr = format(new Date(startDate), 'dd-MM-yyyy');
+      const endStr = format(new Date(endDate), 'dd-MM-yyyy');
+      
+      const fileName = selectedUser === 'all' 
+        ? `relatorio_geral_${startStr}_${endStr}.csv`
+        : `relatorio_${users.find(u => u.id === selectedUser)?.name.replace(/\s+/g, '_')}_${startStr}_${endStr}.csv`;
+      
+      link.setAttribute("download", fileName);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Export failed:", error);
+      alert("Erro ao exportar o arquivo. Tente novamente.");
+    }
   };
 
   return (
